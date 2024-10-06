@@ -11,8 +11,8 @@
       when: hostvars[item]['ansible_default_ipv4'] is not defined
       with_items: "{{ groups['all'] }}"
   tasks:
-    - include: tasks/set_dcs_ips.yml
-    - include: tasks/set_pgsql_servers_ips.yml
+    - import_tasks: tasks/set_dcs_ips.yml
+    - import_tasks: tasks/set_pgsql_servers_ips.yml
 
 - name: setup DCS servers
   hosts: dcs_servers
@@ -23,14 +23,14 @@
   become_method: sudo
 
   tasks:
-    - include: tasks/{{ dcs }}.yml
+    - import_tasks: tasks/{{ dcs }}.yml
 
 - name: setup HAProxy server
   hosts: haproxy_server
   vars_files:
     - vars.yml
   tasks:
-    - include: tasks/haproxy.yml
+    - import_tasks: tasks/haproxy.yml
 
 - name: setup Postgres Servers
   hosts: pgsql_servers
@@ -51,7 +51,7 @@
         - config
 
   tasks:
-    - include: tasks/consul.yml
+    - import_tasks: tasks/consul.yml
       when: dcs == "consul"
-    - include: tasks/postgresql.yml
-    - include: tasks/patroni.yml
+    - import_tasks: tasks/postgresql.yml
+    - import_tasks: tasks/patroni.yml
