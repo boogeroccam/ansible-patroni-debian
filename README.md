@@ -21,6 +21,9 @@ The default topology consists of one node (`master`) acting as the DCS
 (Distributed Consensus Store) server, and three PostgreSQL/Patroni nodes
 (`pg1`, `pg2` and `pg3`), see `inventory`.
 
+## Todo
+- [ ] adapt playbook for pgcat 
+
 DCS Server
 ----------
 
