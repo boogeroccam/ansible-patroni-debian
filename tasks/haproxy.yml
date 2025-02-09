@@ -1,4 +1,7 @@
 ---
+- name: Apt update cache
+  apt:
+    update_cache: yes
 
 - name: Install haproxy package
   package:

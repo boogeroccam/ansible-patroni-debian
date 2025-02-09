@@ -22,6 +22,7 @@
       - htop
       - ssl-cert
       - net-tools
+      - curl
     state: present
 
 - name: Install postgresql-common

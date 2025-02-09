@@ -1,0 +1,107 @@
+namespace: "/postgresql/"
+scope: {{postgresql_cluster_name}}
+name: {{ansible_hostname}}
+
+restapi:
+  listen: {{ hostvars[ansible_hostname].get('intra_address', hostvars[ansible_hostname]['ansible_eth0']['ipv4']['address']) }}:8008
+  connect_address: {{ hostvars[ansible_hostname].get('intra_address', hostvars[ansible_hostname]['ansible_eth0']['ipv4']['address']) }}:8008
+
+{{dcs}}:
+{% for dcs in groups['dcs_servers'] %}
+  host: {{ hostvars[dcs].get('intra_address', hostvars[dcs]['ansible_eth0']['ipv4']['address']) }}:2379
+{% endfor %}
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    use_pg_rewind: true
+    use_slots: true
+    parameters:
+      wal_level: replica
+      hot_standby: "on"
+      wal_keep_segments: 10
+      max_wal_senders: 10
+      max_replication_slots: 15
+      # wal_log_hints: "on"
+      # logging_collector: 'on'
+      max_wal_size: 4GB
+      # archive_mode: "on"
+      # archive_timeout: 600s
+      # archive_command: "cp -f %p /home/postgres/archived/%f"
+  
+  initdb:
+  - encoding: UTF8
+  - data-checksums
+
+  pg_hba:
+      # type    user            dbs             network                 method
+      - local   all             all                                     peer
+      - host    all             all             127.0.0.1/32            md5
+      - host    all             all             ::1/128                 md5
+      - host    all             all             {{ intra_subnet }}      md5
+      - local   replication     all                                     peer
+      - host    replication     all             127.0.0.1/32            md5
+      - host    replication     all             ::1/128                 md5
+      - host    replication     all             {{ intra_subnet }}      md5
+      - host    haproxy         all             {{ intra_subnet }}      md5
+      - host    nsale           all             {{ intra_subnet }}      md5
+
+  users:
+    nsale:
+      password: SomeAwesomePassword!1
+      options:
+        - createrole
+        - createdb
+    repl:
+      password: AwesomeReplPassword!1
+      options:
+        - replication
+    haproxy:
+      password: haproxy
+
+postgresql:
+  cluster_name: {{postgresql_cluster_name}}
+  create_replica_methods:
+      - basebackup
+  basebackup:
+      checkpoint: 'fast'
+  listen: {{ hostvars[ansible_hostname].get('intra_address', hostvars[ansible_hostname]['ansible_eth0']['ipv4']['address']) }},127.0.0.1:5432
+  connect_address: {{ hostvars[ansible_hostname].get('intra_address', hostvars[ansible_hostname]['ansible_eth0']['ipv4']['address']) }},127.0.0.1:5432
+  data_dir: /var/lib/postgresql/{{postgresql_major_version}}/{{postgresql_cluster_name}}
+  # try without config_dir
+  # config_dir: /etc/postgresql/{{postgresql_major_version}}/{{postgresql_cluster_name}}
+  bin_dir: /usr/lib/postgresql/{{postgresql_major_version}}/bin
+  use_unix_socket: true
+  pgpass: /var/lib/postgresql/{{postgresql_major_version}}-{{postgresql_cluster_name}}.pgpass
+  authentication:
+    replication:
+      username: repl
+      password: secret
+    superuser:
+      username: nsale
+      password: AwesomeReplPassword!1
+    haproxy:
+      username: haproxy
+      password: haproxy
+  parameters:
+    unix_socket_directories: '/tmp'
+    max_connections: 300
+    shared_buffers: 2GB
+    effective_cache_size: 6GB
+    maintenance_work_mem: 512MB
+    checkpoint_completion_target: 0.9
+    wal_buffers: 16MB
+    default_statistics_target: 100
+    random_page_cost: 1.1
+    effective_io_concurrency: 200
+    work_mem: 3495kB
+    huge_pages: off
+    min_wal_size: 1GB
+    max_wal_size: 4GB
+    max_worker_processes: 4
+    max_parallel_workers_per_gather: 2
+    max_parallel_workers: 4
+    max_parallel_maintenance_workers: 2

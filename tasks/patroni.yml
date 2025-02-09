@@ -20,12 +20,6 @@
     state: present
   when: dcs == "zookeeper"
 
-- name: Install etcd client package
-  package:
-    name: python3-etcd
-    state: present
-  when: dcs == "etcd"
-
 - name: Install etcd3 client package
   package:
     name: python3-etcd3
@@ -54,18 +48,13 @@
   tags:
     - config
 
-- name: Deploy patroni config templates
+- name: Deploy patroni cluster config from template
   template:
-    src: templates/config.yml.in
-    dest: /etc/patroni/config.yml.in
+    src: templates/config.yml.j2
+    dest: /etc/patroni/{{postgresql_major_version}}-{{postgresql_cluster_name}}.yml
     mode: 0640
     owner: "postgres"
     group: "postgres"
-  tags:
-    - config
-
-- name: Create patroni configuration
-  command: pg_createconfig_patroni --force --hostip={{ ansible_default_ipv4.address }} {% if postgresql_port is defined %}--port={{ postgresql_port }}{% endif %} {% if vip is defined %}--vip={{ vip }} {% if dcs_ips | length > 1 %}--endpoint=http://{{ ansible_default_ipv4.address }}:2379{% endif %}{% endif %} {{ postgresql_major_version }} {{ postgresql_cluster_name }}
   tags:
     - config
 

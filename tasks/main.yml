@@ -1,0 +1,50 @@
+---
+# This task will handle the pre-setup facts collection
+- name: Gather facts from ALL hosts (regardless of limit or tags)
+  setup:
+  delegate_to: "{{ item }}"
+  delegate_facts: True
+  when: hostvars[item]['ansible_default_ipv4'] is not defined
+  with_items: "{{ groups['all'] }}"
+  tags:
+    - gather_facts
+
+# Tasks for setting DCS IPs
+- import_tasks: set_dcs_ips.yml
+  tags:
+    - dcs
+
+- import_tasks: etcd3.yml
+  when: dcs == "etcd3"
+  tags:
+    - dcs
+
+- import_tasks: consul.yml
+  when: dcs == "consul"
+  tags:
+    - dcs
+
+- import_tasks: zookeeper.yml
+  when: dcs == "zookeeper"
+  tags:
+    - dcs
+
+# Tasks for setting PostgreSQL server IPs
+- import_tasks: set_pgsql_servers_ips.yml
+  tags:
+    - pgsql
+
+# PostgreSQL server setup
+- import_tasks: postgresql.yml
+  tags:
+    - pgsql
+
+# Patroni setup
+- import_tasks: patroni.yml
+  tags:
+    - patroni
+
+# HAProxy setup (when applicable)
+- import_tasks: haproxy.yml
+  tags:
+    - haproxy
